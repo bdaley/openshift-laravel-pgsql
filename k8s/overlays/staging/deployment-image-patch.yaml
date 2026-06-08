@@ -7,7 +7,7 @@ spec:
     spec:
       initContainers:
         - name: bootstrap-sqlite
-          image: ghcr.io/bdaley/openshift-laravel-pgsql:latest
+          image: quay.example.com/example-org/openshift-laravel-pgsql:latest
       containers:
         - name: app
-          image: ghcr.io/bdaley/openshift-laravel-pgsql:latest
+          image: quay.example.com/example-org/openshift-laravel-pgsql:latest
