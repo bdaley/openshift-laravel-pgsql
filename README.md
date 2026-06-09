@@ -16,10 +16,59 @@ This repository is prepared for Source-to-Image (S2I) usage on OpenShift with th
 	- Ensures Laravel writable runtime paths exist
 	- Clears Laravel caches
 - `.s2i/bin/run`
-	- Starts a foreground runtime process with safe fallbacks
+	- Starts a builder-image-centric foreground runtime
 	- Does not run database migrations
 - `.s2i/bin/save-artifacts`
 	- Saves `vendor` and `node_modules` for incremental builds
+
+## Local vs OpenShift
+
+- Local development keeps using serversideup via `Dockerfile` and `docker-compose.yaml`.
+- OpenShift uses Source strategy builds and `.s2i/bin/*` scripts.
+- OpenShift should not use the Dockerfile when BuildConfig strategy is `Source`.
+
+## Builder Image Selection
+
+Use the parameterized template at `openshift/buildconfig-s2i.yaml`.
+
+Default builder:
+
+- `BUILDER_KIND=DockerImage`
+- `BUILDER_IMAGE=registry.access.redhat.com/ubi9/php-84`
+
+Template apply example:
+
+```bash
+oc -n laravel-staging process -f openshift/buildconfig-s2i.yaml \
+	-p APP_NAME=laravel-web \
+	-p NAMESPACE=laravel-staging \
+	-p GIT_URI=https://github.com/bdaley/openshift-laravel-pgsql.git \
+	-p GIT_REF=main \
+	-p BUILDER_KIND=DockerImage \
+	-p BUILDER_IMAGE=registry.access.redhat.com/ubi9/php-84 \
+	-p OUTPUT_IMAGESTREAM_TAG=laravel-web:latest | oc apply -f -
+```
+
+Builder override examples:
+
+```bash
+# Switch to an imagestream builder (if your cluster provides one)
+oc -n laravel-staging process -f openshift/buildconfig-s2i.yaml \
+	-p BUILDER_KIND=ImageStreamTag \
+	-p BUILDER_IMAGE=php:8.4-ubi9 \
+	-p BUILDER_NAMESPACE=openshift | oc apply -f -
+
+# One-off patch to an existing BuildConfig
+oc -n laravel-staging patch bc/laravel-web --type=merge -p '{"spec":{"strategy":{"type":"Source","sourceStrategy":{"from":{"kind":"DockerImage","name":"registry.access.redhat.com/ubi9/php-84"}}}}}'
+```
+
+Verify OpenShift ignores Dockerfile:
+
+```bash
+oc -n laravel-staging get bc/laravel-web -o jsonpath='{.spec.strategy.type}{"\n"}'
+```
+
+Expected output: `Source`
 
 ## Runtime Assumptions
 
@@ -74,35 +123,35 @@ Minimal Job example:
 apiVersion: batch/v1
 kind: Job
 metadata:
-	name: laravel-migrate
-	namespace: laravel-staging
+  name: laravel-migrate
+  namespace: laravel-staging
 spec:
-	ttlSecondsAfterFinished: 600
-	backoffLimit: 1
-	template:
-		spec:
-			restartPolicy: Never
-			containers:
-				- name: migrate
-					image: image-registry.openshift-image-registry.svc:5000/laravel-staging/laravel-web:latest
-					command: ['php', 'artisan', 'migrate', '--force', '--no-interaction']
-					envFrom:
-						- configMapRef:
-								name: laravel-web
-						- secretRef:
-								name: laravel-web
-					volumeMounts:
-						- name: storage
-							mountPath: /var/www/html/storage
-						- name: database
-							mountPath: /var/www/html/database
-			volumes:
-				- name: storage
-					persistentVolumeClaim:
-						claimName: laravel-storage
-				- name: database
-					persistentVolumeClaim:
-						claimName: laravel-database
+  ttlSecondsAfterFinished: 600
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: image-registry.openshift-image-registry.svc:5000/laravel-staging/laravel-web:latest
+          command: ['php', 'artisan', 'migrate', '--force', '--no-interaction']
+          envFrom:
+            - configMapRef:
+                name: laravel-web
+            - secretRef:
+                name: laravel-web
+          volumeMounts:
+            - name: storage
+              mountPath: /var/www/html/storage
+            - name: database
+              mountPath: /var/www/html/database
+      volumes:
+        - name: storage
+          persistentVolumeClaim:
+            claimName: laravel-storage
+        - name: database
+          persistentVolumeClaim:
+            claimName: laravel-database
 ```
 
 Apply it with:

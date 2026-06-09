@@ -1,0 +1,54 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: laravel-s2i-buildconfig
+parameters:
+  - name: APP_NAME
+    value: laravel-web
+  - name: NAMESPACE
+    value: laravel-staging
+  - name: GIT_URI
+    value: https://github.com/bdaley/openshift-laravel-pgsql.git
+  - name: GIT_REF
+    value: main
+  - name: CONTEXT_DIR
+    value: .
+  - name: BUILDER_KIND
+    value: DockerImage
+  - name: BUILDER_IMAGE
+    value: registry.access.redhat.com/ubi9/php-84
+  - name: BUILDER_NAMESPACE
+    value: openshift
+  - name: OUTPUT_IMAGESTREAM_TAG
+    value: laravel-web:latest
+objects:
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      name: ${APP_NAME}
+      namespace: ${NAMESPACE}
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
+    metadata:
+      name: ${APP_NAME}
+      namespace: ${NAMESPACE}
+    spec:
+      source:
+        type: Git
+        git:
+          uri: ${GIT_URI}
+          ref: ${GIT_REF}
+        contextDir: ${CONTEXT_DIR}
+      strategy:
+        type: Source
+        sourceStrategy:
+          from:
+            kind: ${BUILDER_KIND}
+            name: ${BUILDER_IMAGE}
+            namespace: ${BUILDER_NAMESPACE}
+      output:
+        to:
+          kind: ImageStreamTag
+          name: ${OUTPUT_IMAGESTREAM_TAG}
+      triggers:
+        - type: ConfigChange
