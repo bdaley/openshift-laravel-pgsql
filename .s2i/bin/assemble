@@ -28,9 +28,6 @@ echo "[s2i:assemble] Ensuring writable runtime paths"
 mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs database
 touch database/database.sqlite
 
-echo "[s2i:assemble] Installing PHP dependencies"
-composer install --no-interaction --no-dev --optimize-autoloader --prefer-dist
-
 echo "[s2i:assemble] Preparing environment file"
 if [[ ! -f .env && -f .env.example ]]; then
   cp .env.example .env
