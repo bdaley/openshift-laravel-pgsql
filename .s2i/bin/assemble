@@ -45,4 +45,7 @@ php artisan route:clear --no-interaction
 php artisan view:clear --no-interaction
 php artisan cache:clear --no-interaction
 
+echo "[s2i:assemble] Running migrations"
+php artisan migrate --no-interaction
+
 echo "[s2i:assemble] Completed"
