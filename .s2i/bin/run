@@ -6,6 +6,11 @@ PORT="${PORT:-8080}"
 
 cd "$APP_DIR"
 
+# Run migrations automatically on startup without asking for confirmation
+echo "[s2i:run] Running database migrations..."
+php artisan migrate --force
+
+
 echo "[s2i:run] Starting application runtime"
 
 if [[ -x /usr/libexec/s2i/run ]]; then
