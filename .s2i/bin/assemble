@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-/var/www/html}"
+
+cd "$APP_DIR"
+
+export COMPOSER_ALLOW_SUPERUSER=1
+
+echo "[s2i:assemble] Installing PHP dependencies"
+composer install --no-interaction --no-dev --optimize-autoloader --prefer-dist
+
+echo "[s2i:assemble] Preparing environment file"
+if [[ ! -f .env && -f .env.example ]]; then
+  cp .env.example .env
+fi
+
+echo "[s2i:assemble] Installing Node dependencies"
+npm ci --no-audit --no-fund
+
+echo "[s2i:assemble] Building frontend assets"
+npm run build
+
+echo "[s2i:assemble] Clearing Laravel caches"
+php artisan config:clear --no-interaction
+php artisan route:clear --no-interaction
+php artisan view:clear --no-interaction
+php artisan cache:clear --no-interaction
+
+echo "[s2i:assemble] Completed"

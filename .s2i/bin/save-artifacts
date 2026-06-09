@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_DIR="${APP_DIR:-/var/www/html}"
+ARTIFACTS_DIR="${1:-/tmp/artifacts}"
+
+mkdir -p "$ARTIFACTS_DIR"
+cd "$APP_DIR"
+
+echo "[s2i:save-artifacts] Saving build artifacts"
+
+if [[ -d vendor ]]; then
+  tar -C "$APP_DIR" -cf "$ARTIFACTS_DIR/vendor.tar" vendor
+fi
+
+if [[ -d node_modules ]]; then
+  tar -C "$APP_DIR" -cf "$ARTIFACTS_DIR/node_modules.tar" node_modules
+fi
+
+echo "[s2i:save-artifacts] Completed"
