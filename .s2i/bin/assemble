@@ -24,6 +24,14 @@ echo "[s2i:assemble] Ensuring writable runtime paths"
 mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs database
 touch database/database.sqlite
 
+# OpenShift commonly runs containers with an arbitrary UID in the root group.
+# Make runtime paths group-writable so SQLite and Laravel storage are writable.
+if command -v chgrp >/dev/null 2>&1; then
+  chgrp -R 0 storage database || true
+fi
+
+chmod -R g=u storage database
+
 echo "[s2i:assemble] Preparing environment file"
 if [[ ! -f .env && -f .env.example ]]; then
   cp .env.example .env
@@ -41,8 +49,5 @@ php artisan config:clear --no-interaction
 php artisan route:clear --no-interaction
 php artisan view:clear --no-interaction
 # php artisan cache:clear --no-interaction
-
-echo "[s2i:assemble] Running migrations"
-php artisan migrate --no-interaction --force
 
 echo "[s2i:assemble] Completed"
