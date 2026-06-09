@@ -6,10 +6,6 @@ ARTIFACTS_DIR="${ARTIFACTS_DIR:-/tmp/artifacts}"
 
 cd "$APP_DIR"
 
-# Composer config
-export COMPOSER_ALLOW_SUPERUSER=1
-export COMPOSER_ARGS="--no-plugins --no-scripts"
-
 echo "[s2i:assemble] Running assemble script"
 if [[ -x /usr/libexec/s2i/assemble ]]; then
   /usr/libexec/s2i/assemble
